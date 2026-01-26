@@ -148,14 +148,14 @@
 
 ### 2. 저장소 클론
 
-\`\`\`bash
+```bash
 git clone https://github.com/yourusername/sensor-monitoring-system.git
 cd sensor-monitoring-system
-\`\`\`
+```
 
 ### 3. 가상 환경 생성 및 활성화
 
-\`\`\`bash
+```bash
 # Windows
 python -m venv venv
 venv\Scripts\activate
@@ -163,24 +163,24 @@ venv\Scripts\activate
 # Linux/Mac
 python3 -m venv venv
 source venv/bin/activate
-\`\`\`
+```
 
 ### 4. 의존성 설치
 
-\`\`\`bash
+```bash
 pip install -r requirements.txt
-\`\`\`
+```
 
 ### 5. 환경 변수 설정
 
-\`\`\`bash
+```bash
 # .env.example을 복사하여 .env 생성
 cp .env.example .env
 
 # .env 파일을 편집기로 열어 설정 수정
 notepad .env  # Windows
 nano .env     # Linux/Mac
-\`\`\`
+```
 
 **필수 설정 항목**:
 - 데이터베이스 연결 정보
@@ -189,9 +189,9 @@ nano .env     # Linux/Mac
 
 ### 6. 데이터베이스 초기화
 
-\`\`\`bash
+```bash
 python scripts/init_db.py
-\`\`\`
+```
 
 ---
 
@@ -199,15 +199,15 @@ python scripts/init_db.py
 
 ### GUI 모드 실행
 
-\`\`\`bash
+```bash
 python src/main_gui.py
-\`\`\`
+```
 
 ### CLI 모드 실행 (백그라운드 수집만)
 
-\`\`\`bash
+```bash
 python src/main.py
-\`\`\`
+```
 
 ### 종료 방법
 
@@ -218,7 +218,7 @@ python src/main.py
 
 ## 📂 프로젝트 구조
 
-\`\`\`
+```bash
 sensor-monitoring-system/
 │
 ├── database/                # 데이터베이스 관련
@@ -275,7 +275,7 @@ sensor-monitoring-system/
 ├── requirements.txt       # Python 의존성
 ├── SensorMonitoring.spec  # PyInstaller 설정
 └── README.md
-\`\`\`
+```
 
 ---
 
@@ -283,7 +283,7 @@ sensor-monitoring-system/
 
 ### .env 파일 예시
 
-\`\`\`env
+```env
 # 애플리케이션 정보
 APP_NAME=센서 모니터링 시스템
 APP_VERSION=1.0.0
@@ -307,7 +307,7 @@ ENV_SENSOR_IDS=0,1,2          # 쉼표로 구분
 
 # 수집 주기 (초)
 COLLECTION_INTERVAL=5
-\`\`\`
+```
 
 ### 센서 추가 방법
 
@@ -318,13 +318,13 @@ COLLECTION_INTERVAL=5
 3. 프로그램 재시작
 
 **예시**: 전력 센서 1개 추가 (Slave ID 33)
-\`\`\`env
+```env
 # 변경 전
 ENERGY_SLAVE_IDS=11,12,31,32
 
 # 변경 후
 ENERGY_SLAVE_IDS=11,12,31,32,33
-\`\`\`
+```
 
 자세한 내용은 [docs/ADD_SENSOR.md](docs/ADD_SENSOR.md) 참조
 
@@ -336,13 +336,13 @@ ENERGY_SLAVE_IDS=11,12,31,32,33
 
 PyInstaller를 사용하여 독립 실행 파일을 생성할 수 있습니다.
 
-\`\`\`bash
+```bash
 # spec 파일로 빌드
 pyinstaller SensorMonitoring.spec
 
 # 클린 빌드
 pyinstaller --clean SensorMonitoring.spec
-\`\`\`
+```
 
 **빌드 결과물**: \`dist/SensorMonitoring/SensorMonitoring.exe\`
 
