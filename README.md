@@ -156,13 +156,7 @@ cd sensor-monitoring-system
 ### 3. 가상 환경 생성 및 활성화
 
 ```bash
-# Windows
-python -m venv venv
-venv\Scripts\activate
-
-# Linux/Mac
-python3 -m venv venv
-source venv/bin/activate
+conda create -n your_env_name python=3.10 -y
 ```
 
 ### 4. 의존성 설치
@@ -291,8 +285,8 @@ APP_VERSION=1.0.0
 # 데이터베이스
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=sensor_monitoring
-DB_USER=postgres
+DB_NAME=DatabaseName
+DB_USER=username
 DB_PASSWORD=yourpassword
 
 # 전력 센서 (Modbus RTU)
@@ -338,18 +332,18 @@ PyInstaller를 사용하여 독립 실행 파일을 생성할 수 있습니다.
 
 ```bash
 # spec 파일로 빌드
-pyinstaller SensorMonitoring.spec
+pyinstaller filename.spec
 
 # 클린 빌드
-pyinstaller --clean SensorMonitoring.spec
+pyinstaller --clean filename.spec
 ```
 
-**빌드 결과물**: \`dist/SensorMonitoring/SensorMonitoring.exe\`
+**빌드 결과물**: `dist/filename/filename.exe`
 
 ### 배포 시 주의사항
 
-1. **환경 변수 파일**: \`.env\` 파일은 사용자가 직접 생성해야 함
-   - 배포 시 \`.env.example\`만 포함
+1. **환경 변수 파일**: `.env` 파일은 사용자가 직접 생성해야 함
+   - 배포 시 `.env.example`만 포함
    - 사용자에게 설정 가이드 제공
 
 2. **데이터베이스**: PostgreSQL이 설치되어 있어야 함
@@ -373,9 +367,9 @@ pyinstaller --clean SensorMonitoring.spec
 버그 리포트, 기능 제안, Pull Request 환영합니다!
 
 1. Fork the Project
-2. Create your Feature Branch (\`git checkout -b feature/AmazingFeature\`)
-3. Commit your Changes (\`git commit -m 'Add some AmazingFeature'\`)
-4. Push to the Branch (\`git push origin feature/AmazingFeature\`)
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
 ---
@@ -389,9 +383,6 @@ pyinstaller --clean SensorMonitoring.spec
 ## 👤 작성자
 
 **SoloWins - AI Developer**
-
-- GitHub: [@yourusername](https://github.com/yourusername)
-- Email: your.email@example.com
 
 ---
 
