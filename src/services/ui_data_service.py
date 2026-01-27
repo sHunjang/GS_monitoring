@@ -452,6 +452,7 @@ class UIDataService:
                 for row in results:
                     data_list.append({
                         'timestamp': row.timestamp,
+                        'timestamp_formatted': row.timestamp.strftime('%y:%m:%d %H:%M'),  # ← 포맷된 문자열 추가
                         'device_id': row.device_id,
                         'power': round(row.power, 3) if row.power else 0.0,
                         # 'voltage': round(row.voltage, 1) if row.voltage else 0.0,
@@ -509,6 +510,7 @@ class UIDataService:
                 for row in results:
                     data_list.append({
                         'timestamp': row.timestamp,
+                        'timestamp_formatted': row.timestamp.strftime('%y-%m-%d | %H:%M'),  # ← 포맷된 문자열 추가
                         'device_id': row.device_id,
                         'temperature': round(row.temperature, 1) if row.temperature else 0.0,
                         'humidity': round(row.humidity, 1) if row.humidity else 0.0,

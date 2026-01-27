@@ -924,10 +924,10 @@ class MainWindow(QMainWindow):
                     )
                 
                 # DataFrame 형식으로 변환
-                for record in data:
+                for record in data:                    
                     all_data.append({
                         '센서': device,
-                        '시간': record['timestamp'],
+                        '시간': record['timestamp_formatted'],
                         '측정 항목': field,
                         '값': record.get(field, 0),
                         '단위': self.get_unit(field)
