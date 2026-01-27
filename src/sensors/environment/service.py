@@ -1,5 +1,5 @@
 # ==============================================
-# 환경 센서 Service 모듈
+# 환경 센서 Service 모듈 (PyInstaller 호환)
 # ==============================================
 """
 환경 센서 서비스 (온도+습도+조도)
@@ -9,14 +9,41 @@
 - 데이터 검증
 - DB 저장
 - 통계 정보 관리
+
+PyInstaller 대응:
+- 조건부 import 사용
+- sys.path 조작 제거
 """
 
 import logging
 from datetime import datetime
 from typing import Optional, Dict, Any
 
-from sensors.environment.reader import EnvironmentReader
-from core.database import insert_environment_data
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 조건부 import (PyInstaller 호환)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Reader import
+try:
+    from reader import EnvironmentReader
+except ImportError:
+    try:
+        from sensors.environment.reader import EnvironmentReader
+    except ImportError:
+        from src.sensors.environment.reader import EnvironmentReader
+
+# Database import
+try:
+    from database import insert_environment_data
+except ImportError:
+    try:
+        from core.database import insert_environment_data
+    except ImportError:
+        from src.core.database import insert_environment_data
+
+
+logger = logging.getLogger(__name__)
 
 
 class EnvironmentService:
@@ -28,6 +55,14 @@ class EnvironmentService:
     2. 데이터 검증
     3. DB 저장
     4. 통계 정보 제공
+    
+    사용 예:
+        service = EnvironmentService(
+            device_id="Env_1",
+            port="COM11",
+            sensor_id=0
+        )
+        success = service.collect_and_save()
     """
     
     def __init__(
@@ -58,11 +93,13 @@ class EnvironmentService:
         # 연결 상태
         self.connected = False
         
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # 통계 정보
-        self.total_collections = 0
-        self.successful_collections = 0
-        self.failed_collections = 0
-        self.last_collection_time = None
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        self.total_collections = 0      # 총 수집 시도 횟수
+        self.successful_collections = 0  # 성공 횟수
+        self.failed_collections = 0      # 실패 횟수
+        self.last_collection_time = None # 마지막 수집 시각
         
         self.logger = logging.getLogger(f"{__name__}.{device_id}")
     
@@ -90,6 +127,13 @@ class EnvironmentService:
         """
         센서 데이터 수집 후 DB 저장
         
+        프로세스:
+        1. 연결 확인
+        2. 센서 데이터 읽기
+        3. 데이터 검증
+        4. DB 저장
+        5. 통계 업데이트
+        
         Returns:
             bool: 성공 시 True
         """
@@ -98,14 +142,18 @@ class EnvironmentService:
         self.last_collection_time = datetime.now()
         
         try:
-            # 연결 확인
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            # 1. 연결 확인
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             if not self.connected:
                 if not self.connect():
                     self.logger.error(f"[{self.device_id}] 시리얼 포트 연결 실패")
                     self.failed_collections += 1
                     return False
             
-            # 센서 데이터 읽기
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            # 2. 센서 데이터 읽기
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             raw_data = self.reader.read_data()
             
             if not raw_data:
@@ -113,13 +161,17 @@ class EnvironmentService:
                 self.failed_collections += 1
                 return False
             
-            # 데이터 검증
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            # 3. 데이터 검증
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             if not self._validate_data(raw_data):
                 self.logger.error(f"[{self.device_id}] 데이터 검증 실패")
                 self.failed_collections += 1
                 return False
             
-            # DB 저장
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            # 4. DB 저장
+            # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             success = self._save_data(raw_data)
             
             if success:
@@ -144,32 +196,50 @@ class EnvironmentService:
         """
         데이터 검증
         
+        필수 필드 확인 및 범위 검증
+        
         Args:
             data: 센서 데이터
         
         Returns:
             bool: 유효하면 True
         """
+        # 필수 필드 목록
         required = ['temperature', 'humidity', 'illuminance']
         
+        # 필수 필드 존재 여부 확인
         for field in required:
             if field not in data or data[field] is None:
                 self.logger.error(f"[{self.device_id}] 필수 필드 누락: {field}")
                 return False
         
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         # 범위 검증
+        # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         temp = data['temperature']
         humi = data['humidity']
         illu = data['illuminance']
         
+        # 온도 범위 (-40°C ~ +80°C)
         if not (-40 <= temp <= 80):
-            self.logger.warning(f"[{self.device_id}] 온도 범위 초과: {temp}°C")
+            self.logger.warning(
+                f"[{self.device_id}] 온도 범위 초과: {temp}°C "
+                f"(정상: -40~80°C)"
+            )
         
+        # 습도 범위 (0% ~ 100%)
         if not (0 <= humi <= 100):
-            self.logger.warning(f"[{self.device_id}] 습도 범위 초과: {humi}%")
+            self.logger.warning(
+                f"[{self.device_id}] 습도 범위 초과: {humi}% "
+                f"(정상: 0~100%)"
+            )
         
+        # 조도 범위 (0 ~ 99999 lux)
         if not (0 <= illu <= 99999):
-            self.logger.warning(f"[{self.device_id}] 조도 범위 초과: {illu} lux")
+            self.logger.warning(
+                f"[{self.device_id}] 조도 범위 초과: {illu} lux "
+                f"(정상: 0~99999 lux)"
+            )
         
         return True
     
@@ -200,6 +270,7 @@ class EnvironmentService:
         Returns:
             dict: 통계 정보
         """
+        # 성공률 계산
         success_rate = 0.0
         if self.total_collections > 0:
             success_rate = (self.successful_collections / self.total_collections) * 100
@@ -241,6 +312,11 @@ class EnvironmentService:
 # ==============================================
 
 if __name__ == "__main__":
+    """
+    이 파일을 직접 실행하면 서비스 테스트
+    
+    실행: python src/sensors/environment/service.py
+    """
     import logging
     
     logging.basicConfig(
@@ -253,16 +329,18 @@ if __name__ == "__main__":
     print("=" * 70)
     
     service = EnvironmentService(
-        device_id="Env_1",
+        device_id="Env_TEST",
         port="COM11",
         sensor_id=0
     )
     
+    # 3회 수집 테스트
     for i in range(3):
         print(f"\n수집 #{i+1}:")
         success = service.collect_and_save()
         print(f"결과: {'✅ 성공' if success else '❌ 실패'}")
     
+    # 통계 출력
     print("\n[통계 정보]")
     service.print_statistics()
     

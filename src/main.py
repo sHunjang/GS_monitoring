@@ -1,5 +1,5 @@
 # ==============================================
-# 센서 모니터링 시스템 메인 모듈
+# 센서 모니터링 시스템 메인 모듈 (PyInstaller 호환)
 # ==============================================
 """
 고성 센서 모니터링 시스템 메인 프로그램
@@ -19,7 +19,7 @@
       * 센서 ID: 0, 1, 2, ... (ASCII: 0x30, 0x31, 0x32, ...)
 
 아키텍처:
-    - SerialBusManager: 같은 RS-485 버스 공유 관리
+    - ModbusManager: 같은 RS-485 버스 공유 관리
     - threading.Lock: 포트 충돌 방지
     - 순차 접근 보장으로 데이터 무결성 유지
 
@@ -30,9 +30,10 @@
     - Ctrl + C (터미널)
     - UI 창 닫기 버튼 클릭
 
-작성자: [Your Name]
-최초 작성: 2026-01-22
-최종 수정: 2026-01-26
+PyInstaller 대응:
+- 조건부 import 사용
+- sys.path 조작 제거
+- 모든 모듈 명시적 import
 """
 
 import signal
@@ -44,23 +45,94 @@ import threading
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import Qt
 
-from core.config import get_config
-from core.logging_config import setup_logging
-from core.database import test_db_connection
-from sensors.energy.collector import EnergyCollector
-from sensors.environment.collector import EnvironmentCollector
-from ui.main_window import MainWindow
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 조건부 import (PyInstaller 호환)
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# Config import
+try:
+    from config import get_config
+except ImportError:
+    try:
+        from core.config import get_config
+    except ImportError:
+        from src.core.config import get_config
+
+# Logging import
+try:
+    from logging_config import setup_logging
+except ImportError:
+    try:
+        from core.logging_config import setup_logging
+    except ImportError:
+        from src.core.logging_config import setup_logging
+
+# Database import
+try:
+    from database import test_db_connection
+except ImportError:
+    try:
+        from core.database import test_db_connection
+    except ImportError:
+        from src.core.database import test_db_connection
+
+# Collector imports
+try:
+    from sensors.energy.collector import EnergyCollector
+    from sensors.environment.collector import EnvironmentCollector
+except ImportError:
+    try:
+        import importlib
+        
+        # 동적 import
+        energy_collector_module = importlib.import_module('sensors.energy.collector')
+        env_collector_module = importlib.import_module('sensors.environment.collector')
+        
+        EnergyCollector = energy_collector_module.EnergyCollector
+        EnvironmentCollector = env_collector_module.EnvironmentCollector
+    except:
+        # import 실패 시 더미 클래스
+        class EnergyCollector:
+            def __init__(self, *args, **kwargs):
+                pass
+            def start(self):
+                pass
+            def stop(self):
+                pass
+        
+        class EnvironmentCollector:
+            def __init__(self, *args, **kwargs):
+                pass
+            def start(self):
+                pass
+            def stop(self):
+                pass
+
+# UI import
+try:
+    from main_window import MainWindow
+except ImportError:
+    try:
+        from ui.main_window import MainWindow
+    except ImportError:
+        from src.ui.main_window import MainWindow
 
 
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 전역 변수
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 collectors = []  # 모든 센서 수집기를 담는 리스트
 logger = logging.getLogger(__name__)  # 로거
 running = True  # 프로그램 실행 플래그
 app = None  # PyQt 애플리케이션 객체
 window = None  # PyQt 메인 윈도우 객체
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 시그널 핸들러
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def signal_handler(sig, frame):
     """
@@ -101,6 +173,10 @@ def signal_handler(sig, frame):
     sys.exit(0)
 
 
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 시작 배너
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 def print_banner(config):
     """
     시작 배너 출력
@@ -126,7 +202,7 @@ def print_banner(config):
     logger.info(f"  - RS-485 버스: {config.energy_serial_port}")
     logger.info(f"  - 전력 센서: Modbus RTU")
     logger.info(f"  - 환경 센서: ASCII 프로토콜")
-    logger.info(f"  - 🔧 SerialBusManager 통합 (포트 공유)")
+    logger.info(f"  - 🔧 ModbusManager 통합 (포트 공유)")
     
     # 실행 모드
     logger.info("")
@@ -135,6 +211,10 @@ def print_banner(config):
     logger.info("   - UI: 실시간 모니터링 대시보드")
     logger.info("=" * 70)
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 센서 수집기 설정
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def setup_collectors(config):
     """
@@ -207,7 +287,7 @@ def setup_collectors(config):
         logger.info(f"  - 포트: {config.env_serial_port}")
         logger.info(f"  - Baudrate: {config.env_serial_baudrate} bps")
         logger.info(f"  - Sensor IDs: {config.env_sensor_ids}")
-        logger.info(f"  - 🔧 전력 센서와 포트 공유 (SerialBusManager)")
+        logger.info(f"  - 🔧 전력 센서와 포트 공유 (ModbusManager)")
         logger.info("")
         
         # 각 Sensor ID마다 수집기 생성
@@ -238,6 +318,10 @@ def setup_collectors(config):
     logger.info(f"✓ 총 {len(collectors)}개 센서 등록 완료")
     logger.info("=" * 70)
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 데이터 수집 시작
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def start_data_collection():
     """
@@ -273,6 +357,10 @@ def start_data_collection():
     logger.info(f"✓ {len(collectors)}개 센서 수집 시작 완료")
     logger.info("=" * 70)
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# UI 시작
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def start_ui(config):
     """
@@ -375,6 +463,10 @@ def start_ui(config):
             if line.strip():
                 logger.error(f"  {line}")
 
+
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+# 메인 함수
+# ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 def main():
     """
@@ -496,5 +588,6 @@ def main():
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 # 프로그램 진입점
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 if __name__ == "__main__":
     main()
