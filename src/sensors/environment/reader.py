@@ -218,8 +218,8 @@ class EnvironmentReader:
             # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             if response[idx] != self.PARAM_TEMP:
                 return None
-            temp_str = response[idx + 1:idx + 6].decode('ascii')  # "10206" 형태
-            temp_value = int(temp_str) * 0.001  # 10.206°C
+            temp_str = response[idx + 3:idx + 6].decode('ascii')  # "10206" 형태
+            temp_value = int(temp_str) * 0.1  # 10.206°C
             idx += 6
             
             # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
